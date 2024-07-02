@@ -1,0 +1,62 @@
+# niz-kbd-util keymap config example
+
+# Lines beginning with # are comments.
+# You can find the names of the available keycodes in keycodes.txt.
+
+# "fixed-macro" Define a macro with fixed interval
+# syntax: fixed-macro NAME INTERVAL KEYCODE...
+# NAME: Name to use when binding to a key
+# INTERVAL: Interval between each event in milliseconds
+# KEYCODE...:Array of keycodes 
+#            Each keycode represents a key press/release
+
+# this "macro1" represents:
+# press A -> wait 30ms -> release A -> wait 30ms -> press B -> wait 30ms -> release B -> wait 30ms ...
+fixed-macro macro1 100 A A B B
+
+
+# "record-macro" Define a macro with individual intervals
+# syntax: record-macro NAME KEYCODE INTERVAL KEYCODE... ...KEYCODE INTERVAL
+# Key codes and intervals appear alternately in the sequence.
+# The first must be a key code and the last an interval.
+
+# this "macro2" represents:
+# press A -> wait 100ms -> release A -> wait 200ms -> press B -> wait 400ms -> release B -> wait 100ms ...
+record-macro macro2 A 100 A 200 B 300 B 400
+
+
+# "map-keys" Assign one or more symbols to a key
+# syntax: map-keys LAYER INDEX KEYCODE...
+# LAYER: "normal" or "leftfn" or "rightfn"
+# INDEX: Index of the physical key, with the Esc key in the upper left corner as 0
+
+# assign index 15(Tab in Atom66) key to 1+2+3+4
+map-keys normal 15 1 2 3 4
+
+# "map-emu" Assign multiple sequential key strokes to a key
+# syntax: map-emu LAYER INDEX INTERVAL KEYCODE...
+# INTERVAL: Repeat interval
+
+# assign index 16(Q in Atom66) key to "quic"
+map-emu normal 16 100 Q U I C
+
+
+# "map-macro" Assign a macro and its repeat conditions to a keys
+# syntax: map-macro LAYER INDEX NAME REPEAT
+# REPEAT: "hold" or "toggle" or number
+#         "hold" repeats the macro while the key is pressed
+#         "toggle" toggles between run and stop each time a key is pressed
+#         If a number is specified, repeat that number of times
+
+# assgin Fn+W key to "macro1"
+map-macro leftfn 17 macro1 1
+
+# assign Fn as Fn before use it
+map-keys normal 56 LeftFn
+map-keys leftfn 56 LeftFn
+
+# repeat "macro2" while Fn+E is pressed
+map-macro leftfn 18 macro2 hold
+
+# toggle "macro1" with Fn+R
+map-macro leftfn 19 macro1 toggle
