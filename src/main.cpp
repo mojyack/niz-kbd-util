@@ -65,8 +65,10 @@ auto run(const int argc, const char* const argv[]) -> int {
         assert_b(conf.write(keymap_str.data(), keymap_str.size()));
     } else if(action == "write-keymap") {
         assert_b(argc == 4);
-        unwrap_rv(keymap_bin, read_binary<char>(argv[3]), const, false);
-        unwrap_ob(keymap, niz::KeyMap::from_string(std::string_view(keymap_bin.data(), keymap_bin.size())));
+        const auto keymap_txt_r = read_binary<char>(argv[3]);
+        assert_b(keymap_txt_r, keymap_txt_r.as_error().cstr());
+        const auto keymap_txt = keymap_txt_r.as_value();
+        unwrap_ob(keymap, niz::KeyMap::from_string(std::string_view(keymap_txt.data(), keymap_txt.size())));
         assert_b(keymap.write_to_keyboard(fd.as_handle()));
     } else if(action == "flush-firmware") {
         assert_b(argc == 4);
