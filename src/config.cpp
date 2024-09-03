@@ -1,10 +1,9 @@
 #include "common.hpp"
 #include "macros/unwrap.hpp"
 #include "niz.hpp"
-#include "util/assert.hpp"
 #include "util/charconv.hpp"
-#include "util/misc.hpp"
 #include "util/print.hpp"
+#include "util/split.hpp"
 
 namespace niz {
 const auto layer_str = std::array{"normal", "rightfn", "leftfn"};
@@ -15,8 +14,7 @@ auto find_layer_by_str(std::string_view str) -> std::optional<uint8_t> {
             return i;
         }
     }
-    WARN("invalid layer ", str);
-    return std::nullopt;
+    bail("invalid layer ", str);
 }
 
 auto find_keycode_by_str(std::string_view str) -> std::optional<uint8_t> {
@@ -25,8 +23,7 @@ auto find_keycode_by_str(std::string_view str) -> std::optional<uint8_t> {
             return i;
         }
     }
-    WARN("invalid keycode ", str);
-    return std::nullopt;
+    bail("invalid keycode ", str);
 }
 
 namespace {
@@ -37,12 +34,12 @@ struct FixedMacro {
 };
 
 auto parse_fixed_macro(const std::span<const std::string_view> elms) -> std::optional<FixedMacro> {
-    assert_o(elms.size() >= 3);
+    ensure(elms.size() >= 3);
     const auto name = elms[1];
-    unwrap_oo(interval, from_chars<uint16_t>(elms[2]));
+    unwrap(interval, from_chars<uint16_t>(elms[2]));
     auto keycodes = std::vector<uint8_t>();
     for(auto i = 3u; i < elms.size(); i += 1) {
-        unwrap_oo(keycode, find_keycode_by_str(elms[i]));
+        unwrap(keycode, find_keycode_by_str(elms[i]));
         keycodes.emplace_back(keycode);
     }
     return FixedMacro{name, interval, std::move(keycodes)};
@@ -54,13 +51,13 @@ struct RecordMacro {
 };
 
 auto parse_record_macro(const std::span<const std::string_view> elms) -> std::optional<RecordMacro> {
-    assert_o(elms.size() >= 4);
+    ensure(elms.size() >= 4);
     const auto name   = elms[1];
     auto       events = std::vector<func::RecordedDelayMacroSequence::Event>();
     for(auto i = 2u; i < elms.size(); i += 2) {
-        assert_o(i + 1 < elms.size());
-        unwrap_oo(keycode, find_keycode_by_str(elms[i]));
-        unwrap_oo(interval, from_chars<uint16_t>(elms[i + 1]));
+        ensure(i + 1 < elms.size());
+        unwrap(keycode, find_keycode_by_str(elms[i]));
+        unwrap(interval, from_chars<uint16_t>(elms[i + 1]));
         events.push_back({keycode, interval});
     }
     return RecordMacro{name, std::move(events)};
@@ -153,36 +150,36 @@ auto KeyMap::from_string(const std::string_view str) -> std::optional<KeyMap> {
 
         const auto elms = split(line, " ");
         if(elms[0] == "fixed-macro") {
-            unwrap_oo_mut(macro, parse_fixed_macro(elms));
+            unwrap_mut(macro, parse_fixed_macro(elms));
             fixed_macros.emplace_back(std::move(macro));
         } else if(elms[0] == "record-macro") {
-            unwrap_oo_mut(macro, parse_record_macro(elms));
+            unwrap_mut(macro, parse_record_macro(elms));
             record_macros.emplace_back(std::move(macro));
         } else if(elms[0] == "map-keys") {
-            assert_o(elms.size() >= 4);
-            unwrap_oo(layer, find_layer_by_str(elms[1]));
-            unwrap_oo(pos, from_chars<uint8_t>(elms[2]));
+            ensure(elms.size() >= 4);
+            unwrap(layer, find_layer_by_str(elms[1]));
+            unwrap(pos, from_chars<uint8_t>(elms[2]));
             auto keycodes = std::vector<uint8_t>();
             for(auto i = 3u; i < elms.size(); i += 1) {
-                unwrap_oo(keycode, find_keycode_by_str(elms[i]));
+                unwrap(keycode, find_keycode_by_str(elms[i]));
                 keycodes.emplace_back(keycode);
             }
             may_enlarge(map.functions[layer], pos).emplace<func::KeysFunction>(std::move(keycodes));
         } else if(elms[0] == "map-emu") {
-            assert_o(elms.size() >= 5);
-            unwrap_oo(layer, find_layer_by_str(elms[1]));
-            unwrap_oo(pos, from_chars<uint8_t>(elms[2]));
-            unwrap_oo(interval, from_chars<uint16_t>(elms[3]));
+            ensure(elms.size() >= 5);
+            unwrap(layer, find_layer_by_str(elms[1]));
+            unwrap(pos, from_chars<uint8_t>(elms[2]));
+            unwrap(interval, from_chars<uint16_t>(elms[3]));
             auto keycodes = std::vector<uint8_t>();
             for(auto i = 4u; i < elms.size(); i += 1) {
-                unwrap_oo(keycode, find_keycode_by_str(elms[i]));
+                unwrap(keycode, find_keycode_by_str(elms[i]));
                 keycodes.emplace_back(keycode);
             }
             may_enlarge(map.functions[layer], pos).emplace<func::EmulateKeyFunction>(interval, std::move(keycodes));
         } else if(elms[0] == "map-macro") {
-            assert_o(elms.size() == 5);
-            unwrap_oo(layer, find_layer_by_str(elms[1]));
-            unwrap_oo(pos, from_chars<uint8_t>(elms[2]));
+            ensure(elms.size() == 5);
+            unwrap(layer, find_layer_by_str(elms[1]));
+            unwrap(pos, from_chars<uint8_t>(elms[2]));
             const auto macro_name = elms[3];
             auto       macro      = func::MacroKeyFunction();
             if(elms[4] == "hold") {
@@ -191,7 +188,7 @@ auto KeyMap::from_string(const std::string_view str) -> std::optional<KeyMap> {
                 macro.repeat = func::MacroRepeat::Toggle;
             } else {
                 macro.repeat = func::MacroRepeat::Count;
-                unwrap_oo(count, from_chars<uint8_t>(elms[4]));
+                unwrap(count, from_chars<uint8_t>(elms[4]));
                 macro.repeat_count = count;
             }
             for(const auto& fixed : fixed_macros) {
@@ -208,11 +205,10 @@ auto KeyMap::from_string(const std::string_view str) -> std::optional<KeyMap> {
                     }
                 }
             }
-            assert_o(macro.sequence.is_valid());
+            ensure(macro.sequence.is_valid());
             may_enlarge(map.functions[layer], pos).emplace<func::MacroKeyFunction>(std::move(macro));
         } else {
-            WARN("unknown statement ", elms[0]);
-            return std::nullopt;
+            bail("unknown statement ", elms[0]);
         }
     }
 

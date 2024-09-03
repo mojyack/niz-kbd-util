@@ -2,7 +2,6 @@
 
 #include "common.hpp"
 #include "macros/assert.hpp"
-#include "util/assert.hpp"
 
 namespace niz {
 namespace {
@@ -13,13 +12,13 @@ struct KeyCount : Packet {
 } // namespace
 
 auto read_counts(const int fd) -> std::optional<std::vector<uint32_t>> {
-    assert_o(send_packet(fd, PacketType::ReadCounter, {}));
+    ensure(send_packet(fd, PacketType::ReadCounter, {}));
 
     auto counts = std::vector<uint32_t>();
     auto buf    = std::array<uint8_t, 64>();
     while(true) {
         const auto len = read(fd, buf.data(), buf.size());
-        assert_o(len > 0);
+        ensure(len > 0);
         auto& count = *std::bit_cast<KeyCount*>(buf.data());
         if(count.type != PacketType::ReadCounter) {
             break;

@@ -47,7 +47,7 @@ using KeyFunction = Variant<KeysFunction, EmulateKeyFunction, MacroKeyFunction>;
 
 auto get_version(int fd) -> std::optional<std::string>;
 auto read_counts(int fd) -> std::optional<std::vector<uint32_t>>;
-auto flush_firmware(int fd, std::string_view firmware_path) -> bool;
+auto flush_firmware(int fd, const char* firmware_path) -> bool;
 auto enable_keypress(int fd, bool flag) -> bool;
 auto do_initial_calibration(int fd) -> bool;
 auto do_press_calibration(int fd) -> bool;

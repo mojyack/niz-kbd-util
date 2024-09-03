@@ -3,7 +3,6 @@
 #include "common.hpp"
 #include "macros/assert.hpp"
 #include "niz.hpp"
-#include "util/assert.hpp"
 
 namespace niz {
 namespace {
@@ -157,14 +156,14 @@ auto KeyMap::write_to_keyboard(const int fd) const -> bool {
             default:
                 continue;
             }
-            assert_b(write(fd, buf.data(), buf.size()) == buf.size());
+            ensure(write(fd, buf.data(), buf.size()) == buf.size());
         }
     }
 
     for(auto i = 1u; i < buf.size(); i += 1) {
         buf[i] = PacketType::DataEnd;
     }
-    assert_b(write(fd, buf.data(), buf.size()) == buf.size());
+    ensure(write(fd, buf.data(), buf.size()) == buf.size());
 
     return true;
 }
@@ -229,15 +228,15 @@ auto KeyMap::from_keyboard(const int fd) -> std::optional<KeyMap> {
     auto keymap = KeyMap();
     auto buf    = std::array<uint8_t, 64>();
 
-    assert_o(send_packet(fd, PacketType::ReadAll, {}));
+    ensure(send_packet(fd, PacketType::ReadAll, {}));
     while(true) {
         const auto len = read(fd, buf.data(), buf.size());
-        assert_o(len > 0);
+        ensure(len > 0);
         const auto& key = *std::bit_cast<KeyFunctionPacket*>(buf.data());
         if(key.type == PacketType::DataEnd) {
             break;
         }
-        assert_o(key.type == PacketType::KeyData);
+        ensure(key.type == PacketType::KeyData);
 
         auto func = func::KeyFunction();
         switch(key.func_type) {
@@ -303,7 +302,7 @@ auto KeyMap::from_keyboard(const int fd) -> std::optional<KeyMap> {
             }
         } break;
         default:
-            WARN("unknown function type: ");
+            line_warn("unknown function type: ");
             dump_buffer(buf);
             continue;
         }
