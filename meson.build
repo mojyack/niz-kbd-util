@@ -1,4 +1,4 @@
-project('app', 'cpp', version: '1.0.0', default_options : ['warning_level=3', 'werror=false', 'cpp_std=c++20'])
+project('app', 'cpp', version: '1.0.1', default_options : ['warning_level=3', 'werror=false', 'cpp_std=c++23'])
 add_project_arguments('-Wfatal-errors', language: 'cpp')
 add_project_arguments('-Wno-gnu-empty-struct', language: 'cpp')
 add_project_arguments('-Wno-c99-extensions', language: 'cpp')

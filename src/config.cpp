@@ -2,28 +2,27 @@
 #include "macros/unwrap.hpp"
 #include "niz.hpp"
 #include "util/charconv.hpp"
-#include "util/print.hpp"
 #include "util/split.hpp"
 
 namespace niz {
 const auto layer_str = std::array{"normal", "rightfn", "leftfn"};
 
 auto find_layer_by_str(std::string_view str) -> std::optional<uint8_t> {
-    for(auto i = 0u; i < layer_str.size(); i += 1) {
+    for(auto i = 0uz; i < layer_str.size(); i += 1) {
         if(layer_str[i] == str) {
             return i;
         }
     }
-    bail("invalid layer ", str);
+    bail("invalid layer {}", str);
 }
 
 auto find_keycode_by_str(std::string_view str) -> std::optional<uint8_t> {
-    for(auto i = 0u; i < keycodes.size(); i += 1) {
+    for(auto i = 0uz; i < keycodes.size(); i += 1) {
         if(keycodes[i] == str) {
             return i;
         }
     }
-    bail("invalid keycode ", str);
+    bail("invalid keycode {}", str);
 }
 
 namespace {
@@ -69,56 +68,50 @@ auto KeyMap::to_string() const -> std::string {
     auto macro_count = 0;
     for(auto layer = 0; layer < 3; layer += 1) {
         auto& funcs = functions[layer];
-        for(auto pos = 0u; pos < funcs.size(); pos += 1) {
+        for(auto pos = 0uz; pos < funcs.size(); pos += 1) {
             switch(funcs[pos].get_index()) {
             case func::KeyFunction::index_of<func::KeysFunction>: {
                 const auto& func = funcs[pos].as<func::KeysFunction>();
 
-                str += build_string("map-keys ", layer_str[layer], " ", pos);
-                for(auto i = 0u; i < func.keycodes.size(); i += 1) {
-                    str += " ";
-                    str += keycodes[func.keycodes[i]];
+                str += std::format("map-keys {} {}", layer_str[layer], pos);
+                for(const auto code : func.keycodes) {
+                    str += std::format(" {}", keycodes[code]);
                 }
                 str += "\n";
             } break;
             case func::KeyFunction::index_of<func::EmulateKeyFunction>: {
                 const auto& func = funcs[pos].as<func::EmulateKeyFunction>();
 
-                str += build_string("map-emu ", layer_str[layer], " ", pos, " ", func.delay);
-                for(auto i = 0u; i < func.keycodes.size(); i += 1) {
-                    str += " ";
-                    str += keycodes[func.keycodes[i]];
+                str += std::format("map-emu {} {} {}", layer_str[layer], pos, func.delay);
+                for(const auto code : func.keycodes) {
+                    str += std::format(" {}", keycodes[code]);
                 }
                 str += "\n";
             } break;
             case func::KeyFunction::index_of<func::MacroKeyFunction>: {
                 const auto& func = funcs[pos].as<func::MacroKeyFunction>();
 
-                auto macro_name = build_string("macro", macro_count += 1);
+                auto macro_name = std::format("macro{}", macro_count += 1);
                 switch(func.sequence.get_index()) {
                 case func::MacroSequence::index_of<func::AutoDelayMacroSequence>: {
                     auto& sequence = func.sequence.as<func::AutoDelayMacroSequence>();
-                    str += build_string("fixed-macro ", macro_name, " ", sequence.delay);
-                    for(const auto keycode : sequence.keycodes) {
-                        str += " ";
-                        str += keycodes[keycode];
+                    str += std::format("fixed-macro {} {}", macro_name, sequence.delay);
+                    for(const auto code : sequence.keycodes) {
+                        str += std::format(" {}", keycodes[code]);
                     }
                     str += "\n";
                 } break;
                 case func::MacroSequence::index_of<func::RecordedDelayMacroSequence>: {
                     auto& sequence = func.sequence.as<func::RecordedDelayMacroSequence>();
-                    str += build_string("record-macro ", macro_name);
-                    for(auto i = 0u; i < sequence.events.size(); i += 1) {
-                        str += " ";
-                        str += keycodes[sequence.events[i].keycode];
-                        str += " ";
-                        str += std::to_string(sequence.events[i].delay);
+                    str += std::format("record-macro {}", macro_name);
+                    for(const auto& ev : sequence.events) {
+                        str += std::format(" {} {}", keycodes[ev.keycode], ev.delay);
                     }
                     str += "\n";
                 } break;
                 }
 
-                str += build_string("map-macro ", layer_str[layer], " ", pos, " ", macro_name, " ");
+                str += std::format("map-macro {} {} {} ", layer_str[layer], pos, macro_name);
                 switch(func.repeat) {
                 case func::MacroRepeat::Count:
                     str += std::to_string(func.repeat_count);
@@ -208,7 +201,7 @@ auto KeyMap::from_string(const std::string_view str) -> std::optional<KeyMap> {
             ensure(macro.sequence.is_valid());
             may_enlarge(map.functions[layer], pos).emplace<func::MacroKeyFunction>(std::move(macro));
         } else {
-            bail("unknown statement ", elms[0]);
+            bail("unknown statement {}", elms[0]);
         }
     }
 

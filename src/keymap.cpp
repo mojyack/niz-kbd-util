@@ -60,9 +60,9 @@ struct RecordedDelayMacroKeyFunctionPacket : MacroKeyFunctionPacket {
 
 auto print_keycodes(std::span<const uint8_t> codes) -> void {
     for(const auto code : codes) {
-        printf("%d(%s),", int(code), keycodes[code]);
+        std::print("{}({}),", code, keycodes[code]);
     }
-    printf("\n");
+    std::println();
 }
 } // namespace
 
@@ -77,7 +77,7 @@ auto KeyMap::write_to_keyboard(const int fd) const -> bool {
         key.layer = i + 1;
 
         auto& funcs = functions[i];
-        for(auto i = 0u; i < funcs.size(); i += 1) {
+        for(auto i = 0uz; i < funcs.size(); i += 1) {
             key.pos = i + 1;
             switch(funcs[i].get_index()) {
             case func::KeyFunction::index_of<func::KeysFunction>: {
@@ -86,9 +86,7 @@ auto KeyMap::write_to_keyboard(const int fd) const -> bool {
                 auto& keys_key     = *std::bit_cast<KeysKeyFunctionPacket*>(&key);
                 keys_key.func_type = 0x00;
                 keys_key.data_size = func.keycodes.size();
-                for(auto i = 0u; i < func.keycodes.size(); i += 1) {
-                    keys_key.keycodes[i] = func.keycodes[i];
-                }
+                memcpy(keys_key.keycodes, func.keycodes.data(), func.keycodes.size());
                 keys_key.keycodes[func.keycodes.size()] = 0;
             } break;
             case func::KeyFunction::index_of<func::EmulateKeyFunction>: {
@@ -99,9 +97,7 @@ auto KeyMap::write_to_keyboard(const int fd) const -> bool {
                 emu_key.delay_upper = (func.delay & 0xff00) >> 8;
                 emu_key.delay_lower = (func.delay & 0x00ff);
                 emu_key.data_size   = func.keycodes.size();
-                for(auto i = 0u; i < func.keycodes.size(); i += 1) {
-                    emu_key.keycodes[i] = func.keycodes[i];
-                }
+                mempcpy(emu_key.keycodes, func.keycodes.data(), func.keycodes.size());
             } break;
             case func::KeyFunction::index_of<func::MacroKeyFunction>: {
                 const auto& func = funcs[i].as<func::MacroKeyFunction>();
@@ -130,9 +126,7 @@ auto KeyMap::write_to_keyboard(const int fd) const -> bool {
                     auto_macro_key.auto_delay_lower   = (sequence.delay & 0x00ff);
                     auto_macro_key.unknown2           = 0;
                     auto_macro_key.data_size          = sequence.keycodes.size();
-                    for(auto i = 0u; i < sequence.keycodes.size(); i += 1) {
-                        auto_macro_key.keycodes[i] = sequence.keycodes[i];
-                    }
+                    memcpy(auto_macro_key.keycodes, sequence.keycodes.data(), sequence.keycodes.size());
                 } break;
                 case func::MacroSequence::index_of<func::RecordedDelayMacroSequence>: {
                     auto& sequence                   = func.sequence.as<func::RecordedDelayMacroSequence>();
@@ -142,7 +136,7 @@ auto KeyMap::write_to_keyboard(const int fd) const -> bool {
                     rec_macro_key.auto_delay_lower   = 0;
                     rec_macro_key.unknown2           = 0;
                     rec_macro_key.data_size          = sequence.events.size() * sizeof(MacroEvent);
-                    for(auto i = 0u; i < sequence.events.size(); i += 1) {
+                    for(auto i = 0uz; i < sequence.events.size(); i += 1) {
                         auto& key_event       = rec_macro_key.macro_events[i];
                         auto& seq_event       = sequence.events[i];
                         key_event.keycode     = seq_event.keycode;
@@ -170,52 +164,51 @@ auto KeyMap::write_to_keyboard(const int fd) const -> bool {
 
 auto KeyMap::debug_print() const -> void {
     for(auto i = 0; i < 3; i += 1) {
-        print("==== layer ", i, " ====");
+        std::println("==== layer {} ====", i);
         auto& funcs = functions[i];
-        for(auto i = 0u; i < funcs.size(); i += 1) {
-            print("key ", i);
+        for(auto i = 0uz; i < funcs.size(); i += 1) {
+            std::println("key {}", i);
             switch(funcs[i].get_index()) {
             case func::KeyFunction::index_of<func::KeysFunction>: {
                 const auto& func = funcs[i].as<func::KeysFunction>();
-                print("  func: keys");
-                printf("  codes: ");
+                std::println("  func: keys");
+                std::print("  codes: ");
                 print_keycodes(func.keycodes);
             } break;
             case func::KeyFunction::index_of<func::EmulateKeyFunction>: {
                 const auto& func = funcs[i].as<func::EmulateKeyFunction>();
-                print("  func: emulate");
-                print("  delay: ", func.delay);
-                printf("  codes: ");
+                std::println("  func: emulate");
+                std::println("  delay: {}", func.delay);
+                std::print("  codes: ");
                 print_keycodes(func.keycodes);
             } break;
             case func::KeyFunction::index_of<func::MacroKeyFunction>: {
                 const auto& func = funcs[i].as<func::MacroKeyFunction>();
                 switch(func.repeat) {
                 case func::MacroRepeat::Count:
-                    print("  repeat: ", int(func.repeat_count), " times");
+                    std::println("  repeat: {} times", func.repeat_count);
                     break;
                 case func::MacroRepeat::Hold:
-                    print("  repeat: ", "hold");
+                    std::println("  repeat: hold");
                     break;
                 case func::MacroRepeat::Toggle:
-                    print("  repeat: ", "toggle");
+                    std::println("  repeat: toggle");
                     break;
                 }
                 switch(func.sequence.get_index()) {
                 case func::MacroSequence::index_of<func::AutoDelayMacroSequence>: {
                     auto& sequence = func.sequence.as<func::AutoDelayMacroSequence>();
-                    print("  auto delay: ", sequence.delay);
-                    printf("  codes: ");
+                    std::println("  auto delay: {}", sequence.delay);
+                    std::print("  codes: ");
                     print_keycodes(sequence.keycodes);
                 } break;
                 case func::MacroSequence::index_of<func::RecordedDelayMacroSequence>: {
                     auto& sequence = func.sequence.as<func::RecordedDelayMacroSequence>();
-                    printf("  events:");
-                    for(auto i = 0u; i < sequence.events.size(); i += 1) {
-                        auto& e = sequence.events[i];
-                        printf(" %s -> %dms ->", keycodes[e.keycode], e.delay);
+                    std::println("  events:");
+                    for(const auto& ev : sequence.events) {
+                        std::print(" {} -> {}ms ->", keycodes[ev.keycode], ev.delay);
                     }
-                    printf("\n");
+                    std::println();
                 } break;
                 }
             } break;
@@ -245,13 +238,9 @@ auto KeyMap::from_keyboard(const int fd) -> std::optional<KeyMap> {
             if(key.data_size == 0) {
                 continue;
             }
-
-            auto keycodes = std::vector<uint8_t>();
-            for(auto i = 0u; i < key.data_size; i += 1) {
-                keycodes.push_back(key.keycodes[i]);
-            }
-
-            func.emplace<func::KeysFunction>(std::move(keycodes));
+            auto& keycodes = func.emplace<func::KeysFunction>().keycodes;
+            keycodes.resize(key.data_size);
+            memcpy(keycodes.data(), key.keycodes, key.data_size);
         } break;
         case KeyFunctionType::CountMacro:
         case KeyFunctionType::HoldMacro:
@@ -276,7 +265,7 @@ auto KeyMap::from_keyboard(const int fd) -> std::optional<KeyMap> {
                 auto& sequence = macro_func.sequence.emplace<func::RecordedDelayMacroSequence>();
 
                 const auto& key = *std::bit_cast<RecordedDelayMacroKeyFunctionPacket*>(buf.data());
-                for(auto i = 0; i < int(key.data_size / sizeof(MacroEvent)); i += 1) {
+                for(auto i = 0uz; i < key.data_size / sizeof(MacroEvent); i += 1) {
                     const auto& s     = key.macro_events[i];
                     const auto  delay = uint16_t(s.delay_upper << 8 | s.delay_lower);
                     sequence.events.push_back(func::RecordedDelayMacroSequence::Event{s.keycode, delay});
@@ -286,9 +275,8 @@ auto KeyMap::from_keyboard(const int fd) -> std::optional<KeyMap> {
 
                 const auto& key = *std::bit_cast<AutoDelayMacroKeyFunctionPacket*>(buf.data());
                 sequence.delay  = key.auto_delay_upper << 8 | key.auto_delay_lower;
-                for(auto i = 0; i < key.data_size; i += 1) {
-                    sequence.keycodes.push_back(key.keycodes[i]);
-                }
+                sequence.keycodes.resize(key.data_size);
+                memcpy(sequence.keycodes.data(), key.keycodes, key.data_size);
             }
             func.emplace<func::MacroKeyFunction>(std::move(macro_func));
         } break;
@@ -297,12 +285,11 @@ auto KeyMap::from_keyboard(const int fd) -> std::optional<KeyMap> {
 
             const auto& key = *std::bit_cast<EmulateKeyFunctionPacket*>(buf.data());
             emu_func.delay  = key.delay_upper << 8 | key.delay_lower;
-            for(auto i = 0; i < key.data_size; i += 1) {
-                emu_func.keycodes.push_back(key.keycodes[i]);
-            }
+            emu_func.keycodes.resize(key.data_size);
+            memcpy(emu_func.keycodes.data(), key.keycodes, key.data_size);
         } break;
         default:
-            line_warn("unknown function type: ");
+            WARN("unknown function type: ");
             dump_buffer(buf);
             continue;
         }

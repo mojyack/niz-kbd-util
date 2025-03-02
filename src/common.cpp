@@ -24,14 +24,14 @@ auto dump_buffer(const std::span<const uint8_t> buf) -> void {
             for(auto k = 0; k < 4; k += 1) {
                 const auto index = size_t(i * 16 + j * 4 + k);
                 if(index >= buf.size()) {
-                    printf("\n");
+                    std::println();
                     return;
                 }
-                printf("%02X", buf[index]);
+                std::print("{:02X}", buf[index]);
             }
-            printf(" ");
+            std::print(" ");
         }
-        printf("\n");
+        std::println();
     }
 }
 } // namespace niz

@@ -42,22 +42,22 @@ Print this help
 
 auto main(const int argc, const char* const argv[]) -> int {
     if(argc < 2) {
-        print(usage);
+        std::println("{}", usage);
         return 0;
     }
     const auto action = std::string_view(argv[1]);
     if(action == "help" || action == "-h" || action == "--help") {
-        print(usage);
+        std::println("{}", usage);
         return 0;
     }
 
     ensure(argc >= 3);
 
     const auto fd = FileDescriptor(open(argv[2], O_RDWR));
-    ensure(fd.as_handle() >= 0, strerror(errno));
+    ensure(fd.as_handle() >= 0, "errno: {}({})", errno, strerror(errno));
 
     unwrap(version, niz::get_version(fd.as_handle()));
-    print("version: ", version);
+    std::println("version: {}", version);
 
     if(action == "read-keymap") {
         ensure(argc == 4);
@@ -78,9 +78,9 @@ auto main(const int argc, const char* const argv[]) -> int {
         ensure(argc == 3);
         unwrap(counts, niz::read_counts(fd.as_handle()));
         for(const auto c : counts) {
-            printf("%u ", c);
+            std::print("{} ", c);
         }
-        printf("\n");
+        std::println();
     } else if(action == "enable-keypress") {
         ensure(argc == 3);
         ensure(niz::enable_keypress(fd.as_handle(), true));
@@ -97,6 +97,6 @@ auto main(const int argc, const char* const argv[]) -> int {
         bail("unknown action");
     }
 
-    print("done");
+    std::println("done");
     return 0;
 }
